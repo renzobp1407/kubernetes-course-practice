@@ -1,0 +1,29 @@
+## RBAC
+minikube start --vm-driver=none  --extra-config=apiserver.authorization-mode=RBAC
+
+## Create keys and sign
+openssl genrsa -out renzo.key 2048
+openssl req -new -key renzo.key -out renzo.csr -subj "/CN=renzo/O=dev"
+openssl x509 -req -in renzo.csr -CA $HOME/.minikube/ca.crt -CAkey $HOME/.minikube/ca.key -CAcreateserial -out renzo.crt -days 500
+openssl x509 -in  renzo.crt  -noout -text
+
+## Isolated env
+kubectl config view  | grep server
+docker run --rm -ti -v $PWD:/test -w /test  -v /root/.minikube/ca.crt:/ca.crt -v /usr/bin/kubectl:/usr/bin/kubectl alpine sh
+
+## Configure kubectl for user
+kubectl config set-cluster minikube --server=https://192.168.1.140:8443 --certificate-authority=/ca.crt
+# para windows:
+# kubectl config set-cluster minikube --server=https://127.0.0.1:56197 --certificate-authority=$HOME/.minikube/ca.crt
+kubectl config set-credentials ricardo --client-certificate=ricardo.crt --client-key=ricardo.key
+# para windows
+# kubectl config set-credentials renzo --client-certificate=renzo.crt --client-key=renzo.key
+# kubectl config set-credentials renzo --client-certificate=$HOME/.kube/renzo.crt --client-key=$HOME/.kube/renzo.key
+# se tuvo que copiar a la carpeta .kube 
+
+kubectl config set-context ricardo --cluster=minikube --user=ricardo
+# para windows
+# kubectl config set-context renzo --cluster=minikube --user=renzo
+kubectl config use-context ricardo
+# para windows
+# kubectl config use-context renzo
